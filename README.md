@@ -132,7 +132,7 @@ npm run import-quizzes
 
 ### Quick Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR-USERNAME/synapse-e-drive)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/abdesselam-tech/synapse-e-drive)
 
 ### Manual Deploy
 
