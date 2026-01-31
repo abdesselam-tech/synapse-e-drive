@@ -1,0 +1,206 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+    
+    function isTeacher() {
+      return isSignedIn() && getUserRole() == 'teacher';
+    }
+    
+    function isStudent() {
+      return isSignedIn() && getUserRole() == 'student';
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isTeacherOrAdmin() {
+      return isTeacher() || isAdmin();
+    }
+    
+    // ============================================================================
+    // USERS COLLECTION
+    // ============================================================================
+    
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================================
+    // SCHEDULES COLLECTION
+    // ============================================================================
+    
+    match /schedules/{scheduleId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // BOOKINGS COLLECTION
+    // ============================================================================
+    
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn();
+      allow create: if isStudent();
+      allow update: if isSignedIn();
+      allow delete: if isStudent() || isAdmin();
+    }
+    
+    // ============================================================================
+    // LIBRARY COLLECTION
+    // ============================================================================
+    
+    match /library/{fileId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // QUIZZES COLLECTION
+    // ============================================================================
+    
+    match /quizzes/{quizId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // QUESTIONS COLLECTION
+    // ============================================================================
+    
+    match /questions/{questionId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // QUIZ ATTEMPTS COLLECTION
+    // ============================================================================
+    
+    match /quizAttempts/{attemptId} {
+      allow read: if isSignedIn();
+      allow create: if isStudent();
+      allow update: if isStudent() || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================================
+    // EXAM REQUESTS COLLECTION
+    // ============================================================================
+    
+    match /examRequests/{requestId} {
+      allow read: if isSignedIn();
+      allow create: if isStudent();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================================
+    // GROUPS COLLECTION
+    // ============================================================================
+    
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================================
+    // GROUP MEMBERS COLLECTION
+    // ============================================================================
+    
+    match /groupMembers/{memberId} {
+      allow read: if isSignedIn();
+      allow create: if isStudent() || isAdmin();
+      allow update: if isSignedIn();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // GROUP SCHEDULES COLLECTION
+    // ============================================================================
+    
+    match /groupSchedules/{scheduleId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // GROUP RESOURCES COLLECTION
+    // ============================================================================
+    
+    match /groupResources/{resourceId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // NOTIFICATIONS COLLECTION
+    // ============================================================================
+    
+    match /notifications/{notificationId} {
+      // Users can only read their own notifications
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Notifications are created server-side only (via Admin SDK)
+      allow create: if false;
+      // Users can update (mark as read) their own notifications
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can delete their own notifications
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================================================
+    // PASSCODES COLLECTION
+    // ============================================================================
+    
+    match /passcodes/{passcodeId} {
+      // Anyone can read passcodes (for validation during signup)
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================================
+    // DEFAULT DENY RULE
+    // ============================================================================
+    
+    // Deny access to any other collection not explicitly defined
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
