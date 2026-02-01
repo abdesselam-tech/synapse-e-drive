@@ -5,6 +5,18 @@
 
 export type GroupStatus = 'active' | 'inactive' | 'archived';
 
+/**
+ * Rank definition for a group
+ * Each rank unlocks specific features for students
+ */
+export interface RankDefinition {
+  level: number;              // 1, 2, 3 ...
+  label: string;              // e.g. "Code Interne", "Conduite Urbaine", "Conduite Autoroute"
+  labelAr?: string;           // Arabic label
+  labelFr?: string;           // French label (default)
+  unlockedFeatures: string[]; // Feature keys unlocked at this rank, e.g. ["book_conduite", "quiz_advanced"]
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -21,6 +33,12 @@ export interface Group {
   createdByName: string;
   createdAt: string;
   updatedAt: string;
+  
+  // Ranking system
+  ranks?: RankDefinition[];   // Ordered list of rank tiers defined for this group
+  
+  // Pinned resources
+  resources?: string[];       // Library document IDs that are "pinned" to this group
 }
 
 export type LearningPhase = 'code' | 'creneau' | 'conduite' | 'exam-preparation' | 'passed';

@@ -1131,3 +1131,145 @@ export async function getTeacherCombinedSchedule(teacherId: string): Promise<Com
     throw error;
   }
 }
+
+/**
+ * Extended PlainSchedule with group/rank info
+ */
+export interface StudentAvailableSlot extends PlainSchedule {
+  groupId?: string;
+  groupName?: string;
+  visibility?: 'public' | 'group';
+  requiredRank?: number;
+  requiredRankLabel?: string;
+  isEligible: boolean;
+  eligibilityReason?: string;
+}
+
+/**
+ * Get available schedule slots for a student based on their group and rank
+ * Implements group-scoped availability filtering
+ */
+export async function getStudentAvailableSlots(studentId: string): Promise<StudentAvailableSlot[]> {
+  try {
+    const token = await getAuthToken();
+    await requireAuth(token);
+
+    // Get student document to check group and rank
+    const studentDoc = await adminDb.collection(COLLECTIONS.USERS).doc(studentId).get();
+    if (!studentDoc.exists) {
+      throw new NotFoundError('Student not found');
+    }
+
+    const studentData = studentDoc.data()!;
+    const studentGroupId = studentData.groupId;
+    const studentRank = studentData.rank || 1;
+
+    // Get group info if student is in a group
+    let groupName: string | undefined;
+    if (studentGroupId) {
+      const groupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(studentGroupId).get();
+      if (groupDoc.exists) {
+        groupName = groupDoc.data()?.name;
+      }
+    }
+
+    // Query schedules
+    const now = new Date();
+    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    const snapshot = await adminDb
+      .collection(COLLECTIONS.SCHEDULES)
+      .where('status', '==', 'available')
+      .get();
+
+    const slots: StudentAvailableSlot[] = [];
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      if (!data) continue;
+
+      // Parse schedule date and time
+      const scheduleDate = data.date instanceof Timestamp 
+        ? data.date.toDate() 
+        : new Date(data.date);
+      const [hours, minutes] = data.startTime.split(':').map(Number);
+      scheduleDate.setHours(hours, minutes, 0, 0);
+
+      // Skip past schedules or those starting within 2 hours
+      if (scheduleDate < twoHoursFromNow) continue;
+
+      // Check if schedule is full
+      const bookedCount = (data.bookedStudents || []).length;
+      if (bookedCount >= data.maxStudents) continue;
+
+      // Check visibility and group eligibility
+      const scheduleGroupId = data.groupId;
+      const scheduleVisibility = data.visibility || 'public';
+      const scheduleRequiredRank = data.requiredRank || 1;
+
+      let isEligible = true;
+      let eligibilityReason: string | undefined;
+
+      // Check group membership
+      if (scheduleVisibility === 'group' && scheduleGroupId) {
+        if (!studentGroupId) {
+          isEligible = false;
+          eligibilityReason = 'Vous devez rejoindre un groupe pour réserver cette leçon';
+        } else if (studentGroupId !== scheduleGroupId) {
+          isEligible = false;
+          eligibilityReason = 'Cette leçon est réservée à un autre groupe';
+        }
+      }
+
+      // Check rank requirement
+      if (isEligible && scheduleRequiredRank > studentRank) {
+        isEligible = false;
+        eligibilityReason = `Rang ${scheduleRequiredRank} requis (vous êtes rang ${studentRank})`;
+      }
+
+      // Get schedule group name if different from student's group
+      let scheduleGroupName: string | undefined;
+      if (scheduleGroupId) {
+        if (scheduleGroupId === studentGroupId) {
+          scheduleGroupName = groupName;
+        } else {
+          const schedGroupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(scheduleGroupId).get();
+          if (schedGroupDoc.exists) {
+            scheduleGroupName = schedGroupDoc.data()?.name;
+          }
+        }
+      }
+
+      slots.push({
+        id: doc.id,
+        teacherId: data.teacherId,
+        teacherName: data.teacherName,
+        date: timestampToISO(data.date),
+        startTime: data.startTime,
+        endTime: data.endTime,
+        lessonType: data.lessonType,
+        maxStudents: data.maxStudents,
+        bookedStudents: data.bookedStudents || [],
+        status: data.status,
+        location: data.location || undefined,
+        notes: data.notes || undefined,
+        createdAt: timestampToISO(data.createdAt),
+        updatedAt: timestampToISO(data.updatedAt),
+        groupId: scheduleGroupId,
+        groupName: scheduleGroupName,
+        visibility: scheduleVisibility,
+        requiredRank: scheduleRequiredRank,
+        isEligible,
+        eligibilityReason,
+      });
+    }
+
+    // Sort by date ascending (soonest first)
+    slots.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return slots;
+  } catch (error) {
+    console.error('Error getting student available slots:', error);
+    throw error;
+  }
+}

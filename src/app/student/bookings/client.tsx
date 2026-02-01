@@ -1,6 +1,7 @@
 /**
  * Student Bookings Client Component
  * Handles tabs, client-side interactions, and driving progress display
+ * Now includes rank badge and group-scoped availability
  */
 
 'use client';
@@ -8,11 +9,14 @@
 import { useState, useCallback } from 'react';
 import type { PlainBooking, AvailableSchedule } from '@/lib/server/actions/bookings';
 import type { StudentProgress } from '@/lib/types/booking';
+import type { RankInfo } from '@/lib/types/ranking';
 import { getStudentProgressSummary } from '@/lib/server/actions/bookings';
 import MyBookings from '@/components/bookings/MyBookings';
 import AvailableSchedules from '@/components/bookings/AvailableSchedules';
 import StudentScheduleSearch from '@/components/schedules/StudentScheduleSearch';
 import DrivingProgressDashboard from '@/components/student/DrivingProgressDashboard';
+import { RankBadge, RankProgressBar } from '@/components/ui/RankBadge';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface StudentBookingsClientProps {
   initialBookings: PlainBooking[];
@@ -20,6 +24,7 @@ interface StudentBookingsClientProps {
   upcomingCount: number;
   initialProgress: StudentProgress;
   studentId: string;
+  rankInfo: RankInfo | null;
 }
 
 export default function StudentBookingsClient({
@@ -28,6 +33,7 @@ export default function StudentBookingsClient({
   upcomingCount,
   initialProgress,
   studentId,
+  rankInfo,
 }: StudentBookingsClientProps) {
   const [activeTab, setActiveTab] = useState<'my-bookings' | 'available' | 'search'>('my-bookings');
   const [progress, setProgress] = useState<StudentProgress>(initialProgress);
@@ -44,13 +50,58 @@ export default function StudentBookingsClient({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Lessons & Bookings</h1>
-        <p className="text-gray-600">
-          {upcomingCount > 0 
-            ? `You have ${upcomingCount} upcoming ${upcomingCount === 1 ? 'lesson' : 'lessons'}`
-            : 'No upcoming lessons scheduled'}
-        </p>
+      {/* Header with Rank Info */}
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Lessons & Bookings</h1>
+          <p className="text-gray-600">
+            {upcomingCount > 0 
+              ? `You have ${upcomingCount} upcoming ${upcomingCount === 1 ? 'lesson' : 'lessons'}`
+              : 'No upcoming lessons scheduled'}
+          </p>
+        </div>
+        
+        {/* Rank Badge Card */}
+        {rankInfo && rankInfo.groupId && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <RankBadge 
+                  rank={rankInfo.currentRank} 
+                  label={rankInfo.currentRankLabel}
+                  maxRank={rankInfo.maxRank}
+                  showProgress
+                />
+                {rankInfo.groupName && (
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Groupe:</span> {rankInfo.groupName}
+                  </p>
+                )}
+                {rankInfo.nextRankLabel && (
+                  <RankProgressBar
+                    currentRank={rankInfo.currentRank}
+                    maxRank={rankInfo.maxRank}
+                    progressPercent={rankInfo.progressToNextRank || 0}
+                    nextRankLabel={rankInfo.nextRankLabel}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Not enrolled message */}
+        {(!rankInfo || !rankInfo.groupId) && (
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="p-4">
+              <p className="text-sm text-amber-800">
+                <strong>Non inscrit à un groupe</strong>
+                <br />
+                Rejoignez un groupe pour accéder aux leçons personnalisées.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Driving Progress Dashboard */}

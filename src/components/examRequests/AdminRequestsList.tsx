@@ -112,9 +112,8 @@ export default function AdminRequestsList({ requests, onRequestUpdated }: AdminR
       'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
       'approved': { bg: 'bg-blue-100', text: 'text-blue-800' },
       'rejected': { bg: 'bg-red-100', text: 'text-red-800' },
-      'scheduled': { bg: 'bg-green-100', text: 'text-green-800' },
-      'completed': { bg: 'bg-gray-100', text: 'text-gray-800' },
-      'cancelled': { bg: 'bg-gray-100', text: 'text-gray-600' },
+      'passed': { bg: 'bg-green-100', text: 'text-green-800' },
+      'failed': { bg: 'bg-gray-100', text: 'text-gray-800' },
     };
 
     const badge = badges[status] || badges['pending'];
@@ -125,9 +124,10 @@ export default function AdminRequestsList({ requests, onRequestUpdated }: AdminR
     );
   }
 
-  function formatDate(isoString?: string): string {
-    if (!isoString) return 'Not set';
-    return new Date(isoString).toLocaleDateString('en-US', {
+  function formatDate(value?: string | number): string {
+    if (!value) return 'Not set';
+    const date = typeof value === 'number' ? new Date(value) : new Date(value);
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -176,23 +176,18 @@ export default function AdminRequestsList({ requests, onRequestUpdated }: AdminR
               </div>
 
               <div className="space-y-2 text-sm mb-4">
-                {request.requestedDate && (
+                {request.examDate && (
                   <p className="text-gray-700">
-                    <strong>Preferred Date:</strong> {formatDate(request.requestedDate)}
+                    <strong>Exam Date:</strong>{' '}
+                    <span className="text-green-600 font-semibold">{formatDate(request.examDate)}</span>
+                    {request.examTime && ` at ${request.examTime}`}
                   </p>
                 )}
 
-                {request.scheduledDate && (
-                  <p className="text-gray-700">
-                    <strong>Scheduled Date:</strong>{' '}
-                    <span className="text-green-600 font-semibold">{formatDate(request.scheduledDate)}</span>
-                  </p>
-                )}
-
-                {request.notes && (
+                {request.studentNotes && (
                   <div className="bg-gray-50 border rounded-md p-3">
                     <strong>Student Notes:</strong>
-                    <p className="mt-1">{request.notes}</p>
+                    <p className="mt-1">{request.studentNotes}</p>
                   </div>
                 )}
 
@@ -210,11 +205,11 @@ export default function AdminRequestsList({ requests, onRequestUpdated }: AdminR
                   </div>
                 )}
 
-                {request.examResult && (
+                {request.result && (
                   <p className="text-gray-700">
                     <strong>Result:</strong>{' '}
-                    <span className={request.examResult === 'passed' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-                      {request.examResult.toUpperCase()}
+                    <span className={request.result === 'passed' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+                      {request.result.toUpperCase()}
                     </span>
                   </p>
                 )}
@@ -241,7 +236,7 @@ export default function AdminRequestsList({ requests, onRequestUpdated }: AdminR
                   </>
                 )}
 
-                {request.status === 'scheduled' && !request.examResult && (
+                {request.status === 'approved' && !request.result && (
                   <>
                     <Button
                       size="sm"

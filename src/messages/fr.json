@@ -1,0 +1,134 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "all": "Tous",
+    "none": "Aucun",
+    "yes": "Oui",
+    "no": "Non",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Soumettre",
+    "close": "Fermer"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "signup": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié?",
+    "rememberMe": "Se souvenir de moi"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue, {name}!",
+    "progress": "Ma Progression",
+    "upcomingLessons": "Prochaines Leçons",
+    "noUpcomingLessons": "Aucune leçon prévue",
+    "completedLessons": "Leçons Terminées",
+    "quizAttempts": "Tentatives de Quiz",
+    "quizzesPassed": "Quiz Réussis"
+  },
+  "actions": {
+    "takeQuiz": "Passer un Quiz",
+    "studyMaterials": "Ressources d'Étude",
+    "viewClassActivity": "Voir l'Activité de Classe",
+    "chooseGroup": "Choisir un Groupe",
+    "bookLesson": "Réserver une Leçon",
+    "manageSchedules": "Gérer les Horaires",
+    "createQuiz": "Créer un Quiz",
+    "addExamForm": "Ajouter un Formulaire d'Examen",
+    "pinResource": "Épingler une Ressource",
+    "viewStudents": "Voir les Étudiants"
+  },
+  "groups": {
+    "title": "Groupes",
+    "myGroup": "Mon Groupe",
+    "joinGroup": "Rejoindre un Groupe",
+    "leaveGroup": "Quitter le Groupe",
+    "members": "Membres",
+    "teacher": "Enseignant",
+    "activity": "Activité",
+    "resources": "Ressources"
+  },
+  "ranking": {
+    "rank": "Rang",
+    "currentRank": "Rang Actuel",
+    "nextRank": "Prochain Rang",
+    "maxRankReached": "Rang Maximum Atteint!",
+    "progressToNext": "Progression vers le prochain rang",
+    "notEnrolled": "Non inscrit à un groupe"
+  },
+  "bookings": {
+    "title": "Réservations",
+    "myBookings": "Mes Réservations",
+    "available": "Disponible",
+    "upcoming": "À Venir",
+    "past": "Passé",
+    "book": "Réserver",
+    "cancel": "Annuler",
+    "confirmed": "Confirmé",
+    "cancelled": "Annulé",
+    "completed": "Terminé"
+  },
+  "exams": {
+    "title": "Examens",
+    "requestExam": "Demander un Examen",
+    "examForm": "Formulaire d'Examen",
+    "pending": "En Attente",
+    "approved": "Approuvé",
+    "rejected": "Refusé",
+    "passed": "Réussi",
+    "failed": "Échoué",
+    "examDate": "Date d'Examen",
+    "examTime": "Heure d'Examen"
+  },
+  "library": {
+    "title": "Bibliothèque",
+    "pinnedResources": "Ressources Épinglées",
+    "allResources": "Toutes les Ressources",
+    "download": "Télécharger",
+    "upload": "Téléverser"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAsRead": "Marquer comme lu",
+    "markAllAsRead": "Tout marquer comme lu",
+    "noNotifications": "Aucune notification"
+  },
+  "admin": {
+    "dashboard": "Tableau de Bord Admin",
+    "users": "Utilisateurs",
+    "schedules": "Horaires",
+    "evaluations": "Évaluations",
+    "logs": "Journaux",
+    "platformOverview": "Vue d'Ensemble",
+    "pendingExamRequests": "Demandes d'Examen en Attente"
+  },
+  "teacher": {
+    "dashboard": "Tableau de Bord Enseignant",
+    "myGroups": "Mes Groupes",
+    "todaySchedule": "Horaire du Jour",
+    "recentActivity": "Activité Récente"
+  },
+  "activity": {
+    "title": "Activité",
+    "recentActivity": "Activité Récente",
+    "noActivity": "Aucune activité récente",
+    "booking": "Réservation",
+    "rankUp": "Promotion de Rang",
+    "quizCompleted": "Quiz Terminé",
+    "resourceAdded": "Ressource Ajoutée",
+    "examFormCreated": "Formulaire d'Examen Créé",
+    "examRequested": "Examen Demandé"
+  }
+}

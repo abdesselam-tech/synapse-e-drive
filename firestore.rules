@@ -208,6 +208,40 @@ service cloud.firestore {
     }
     
     // ============================================================================
+    // EXAM FORMS SUB-COLLECTION (under groups)
+    // ============================================================================
+    
+    match /groups/{groupId}/examForms/{formId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacherOrAdmin();
+      allow update: if isTeacherOrAdmin();
+      allow delete: if isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
+    // ACTIVITY FEED COLLECTION
+    // ============================================================================
+    
+    match /activityFeed/{activityId} {
+      // All signed-in users can read activity feed entries
+      // (filtering by group membership is done in server actions)
+      allow read: if isSignedIn();
+      // Only server-side writes (via Admin SDK)
+      allow write: if false;
+    }
+    
+    // ============================================================================
+    // LOGS COLLECTION (Admin audit logs)
+    // ============================================================================
+    
+    match /logs/{logId} {
+      // Only admins can read logs
+      allow read: if isAdmin();
+      // Only server-side writes (via Admin SDK)
+      allow write: if false;
+    }
+    
+    // ============================================================================
     // DEFAULT DENY RULE
     // ============================================================================
     

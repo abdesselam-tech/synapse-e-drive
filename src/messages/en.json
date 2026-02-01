@@ -1,0 +1,134 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "none": "None",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember Me"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}!",
+    "progress": "My Progress",
+    "upcomingLessons": "Upcoming Lessons",
+    "noUpcomingLessons": "No upcoming lessons scheduled",
+    "completedLessons": "Completed Lessons",
+    "quizAttempts": "Quiz Attempts",
+    "quizzesPassed": "Quizzes Passed"
+  },
+  "actions": {
+    "takeQuiz": "Take a Quiz",
+    "studyMaterials": "Study Materials",
+    "viewClassActivity": "View Class Activity",
+    "chooseGroup": "Choose a Group",
+    "bookLesson": "Book a Lesson",
+    "manageSchedules": "Manage Schedules",
+    "createQuiz": "Create Quiz",
+    "addExamForm": "Add Exam Form",
+    "pinResource": "Pin Resource",
+    "viewStudents": "View Students"
+  },
+  "groups": {
+    "title": "Groups",
+    "myGroup": "My Group",
+    "joinGroup": "Join Group",
+    "leaveGroup": "Leave Group",
+    "members": "Members",
+    "teacher": "Teacher",
+    "activity": "Activity",
+    "resources": "Resources"
+  },
+  "ranking": {
+    "rank": "Rank",
+    "currentRank": "Current Rank",
+    "nextRank": "Next Rank",
+    "maxRankReached": "Maximum Rank Reached!",
+    "progressToNext": "Progress to next rank",
+    "notEnrolled": "Not enrolled in a group"
+  },
+  "bookings": {
+    "title": "Bookings",
+    "myBookings": "My Bookings",
+    "available": "Available",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "book": "Book",
+    "cancel": "Cancel",
+    "confirmed": "Confirmed",
+    "cancelled": "Cancelled",
+    "completed": "Completed"
+  },
+  "exams": {
+    "title": "Exams",
+    "requestExam": "Request Exam",
+    "examForm": "Exam Form",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "passed": "Passed",
+    "failed": "Failed",
+    "examDate": "Exam Date",
+    "examTime": "Exam Time"
+  },
+  "library": {
+    "title": "Library",
+    "pinnedResources": "Pinned Resources",
+    "allResources": "All Resources",
+    "download": "Download",
+    "upload": "Upload"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAsRead": "Mark as Read",
+    "markAllAsRead": "Mark All as Read",
+    "noNotifications": "No notifications"
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "users": "Users",
+    "schedules": "Schedules",
+    "evaluations": "Evaluations",
+    "logs": "Logs",
+    "platformOverview": "Platform Overview",
+    "pendingExamRequests": "Pending Exam Requests"
+  },
+  "teacher": {
+    "dashboard": "Teacher Dashboard",
+    "myGroups": "My Groups",
+    "todaySchedule": "Today's Schedule",
+    "recentActivity": "Recent Activity"
+  },
+  "activity": {
+    "title": "Activity",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity",
+    "booking": "Booking",
+    "rankUp": "Rank Up",
+    "quizCompleted": "Quiz Completed",
+    "resourceAdded": "Resource Added",
+    "examFormCreated": "Exam Form Created",
+    "examRequested": "Exam Requested"
+  }
+}

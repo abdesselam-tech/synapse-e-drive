@@ -368,3 +368,214 @@ export async function incrementDownloadCount(fileId: string): Promise<{ success:
     return { success: false };
   }
 }
+
+// ============================================================================
+// LIBRARY PINNING (Group-specific resources)
+// ============================================================================
+
+/**
+ * Pin a resource to a group (Teacher/Admin only)
+ */
+export async function pinResourceToGroup(
+  libraryId: string,
+  groupId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    const userDoc = await adminDb.collection(COLLECTIONS.USERS).doc(user.uid).get();
+    const userRole = userDoc.data()?.role;
+
+    if (userRole !== 'admin' && userRole !== 'teacher') {
+      return { success: false, error: 'Permission denied' };
+    }
+
+    // Verify group exists and teacher owns it (if teacher)
+    const groupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(groupId).get();
+    if (!groupDoc.exists) {
+      return { success: false, error: 'Group not found' };
+    }
+
+    if (userRole === 'teacher' && groupDoc.data()?.teacherId !== user.uid) {
+      return { success: false, error: 'You can only pin resources to your own groups' };
+    }
+
+    // Verify library resource exists
+    const libraryDoc = await adminDb.collection(COLLECTIONS.LIBRARY).doc(libraryId).get();
+    if (!libraryDoc.exists) {
+      return { success: false, error: 'Resource not found' };
+    }
+
+    // Add groupId to the resource's groupIds array
+    await libraryDoc.ref.update({
+      groupIds: FieldValue.arrayUnion(groupId),
+    });
+
+    // Also add to group's resources array
+    await groupDoc.ref.update({
+      resources: FieldValue.arrayUnion(libraryId),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error pinning resource to group:', error);
+    return { success: false, error: 'Failed to pin resource' };
+  }
+}
+
+/**
+ * Unpin a resource from a group (Teacher/Admin only)
+ */
+export async function unpinResourceFromGroup(
+  libraryId: string,
+  groupId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    const userDoc = await adminDb.collection(COLLECTIONS.USERS).doc(user.uid).get();
+    const userRole = userDoc.data()?.role;
+
+    if (userRole !== 'admin' && userRole !== 'teacher') {
+      return { success: false, error: 'Permission denied' };
+    }
+
+    // Verify group exists and teacher owns it (if teacher)
+    const groupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(groupId).get();
+    if (!groupDoc.exists) {
+      return { success: false, error: 'Group not found' };
+    }
+
+    if (userRole === 'teacher' && groupDoc.data()?.teacherId !== user.uid) {
+      return { success: false, error: 'You can only unpin resources from your own groups' };
+    }
+
+    // Remove groupId from the resource's groupIds array
+    const libraryDoc = await adminDb.collection(COLLECTIONS.LIBRARY).doc(libraryId).get();
+    if (libraryDoc.exists) {
+      await libraryDoc.ref.update({
+        groupIds: FieldValue.arrayRemove(groupId),
+      });
+    }
+
+    // Also remove from group's resources array
+    await groupDoc.ref.update({
+      resources: FieldValue.arrayRemove(libraryId),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error unpinning resource from group:', error);
+    return { success: false, error: 'Failed to unpin resource' };
+  }
+}
+
+/**
+ * Extended library file with pinning info
+ */
+export interface LibraryFileWithPinning extends LibraryFile {
+  isPinned: boolean;
+  pinnedGroupNames?: string[];
+}
+
+/**
+ * Get library files for a user with pinning information
+ */
+export async function getLibraryForUser(userId: string): Promise<LibraryFileWithPinning[]> {
+  try {
+    const user = await getCurrentUser();
+    const userDoc = await adminDb.collection(COLLECTIONS.USERS).doc(userId).get();
+    
+    if (!userDoc.exists) {
+      return [];
+    }
+
+    const userData = userDoc.data()!;
+    const userRole = userData.role;
+    const userGroupId = userData.groupId;
+
+    // Get all library files
+    const snapshot = await adminDb.collection(COLLECTIONS.LIBRARY).get();
+    
+    // Get user's groups (for teachers, get all their groups)
+    let userGroupIds: string[] = [];
+    if (userRole === 'student' && userGroupId) {
+      userGroupIds = [userGroupId];
+    } else if (userRole === 'teacher') {
+      const groupsSnapshot = await adminDb
+        .collection(COLLECTIONS.GROUPS)
+        .where('teacherId', '==', userId)
+        .get();
+      userGroupIds = groupsSnapshot.docs.map(doc => doc.id);
+    } else if (userRole === 'admin') {
+      // Admin sees all groups
+      const groupsSnapshot = await adminDb.collection(COLLECTIONS.GROUPS).get();
+      userGroupIds = groupsSnapshot.docs.map(doc => doc.id);
+    }
+
+    // Get group names for pinned resources
+    const groupNamesMap: Record<string, string> = {};
+    if (userGroupIds.length > 0) {
+      const groupsSnapshot = await adminDb
+        .collection(COLLECTIONS.GROUPS)
+        .where('__name__', 'in', userGroupIds.slice(0, 10)) // Firestore limit
+        .get();
+      groupsSnapshot.docs.forEach(doc => {
+        groupNamesMap[doc.id] = doc.data().name;
+      });
+    }
+
+    const files: LibraryFileWithPinning[] = [];
+    
+    for (const doc of snapshot.docs) {
+      const plainFile = convertFileToPlain(doc);
+      if (!plainFile) continue;
+
+      const data = doc.data();
+      const fileGroupIds: string[] = data?.groupIds || [];
+      
+      // Check if pinned to any of user's groups
+      const isPinned = fileGroupIds.some(gid => userGroupIds.includes(gid));
+      const pinnedGroupNames = fileGroupIds
+        .filter(gid => userGroupIds.includes(gid))
+        .map(gid => groupNamesMap[gid])
+        .filter(Boolean);
+
+      files.push({
+        ...plainFile,
+        groupIds: fileGroupIds,
+        isPinned,
+        pinnedGroupNames: pinnedGroupNames.length > 0 ? pinnedGroupNames : undefined,
+      });
+    }
+
+    // Sort: pinned first, then by upload date
+    files.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+    });
+
+    return files;
+  } catch (error) {
+    console.error('Error getting library for user:', error);
+    return [];
+  }
+}
+
+/**
+ * Get pinned resources for a specific group
+ */
+export async function getPinnedResourcesForGroup(groupId: string): Promise<LibraryFile[]> {
+  try {
+    const snapshot = await adminDb
+      .collection(COLLECTIONS.LIBRARY)
+      .where('groupIds', 'array-contains', groupId)
+      .get();
+
+    return snapshot.docs
+      .map(doc => convertFileToPlain(doc))
+      .filter((f): f is LibraryFile => f !== null);
+  } catch (error) {
+    console.error('Error getting pinned resources for group:', error);
+    return [];
+  }
+}

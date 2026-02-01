@@ -44,30 +44,43 @@ function timestampToISO(value: unknown): string | undefined {
 
 /**
  * Convert Firestore document to plain ExamRequest object
+ * Note: This function bridges old and new ExamRequest structures during migration
  */
 function convertRequestToPlain(doc: FirebaseFirestore.DocumentSnapshot): ExamRequest | null {
   const data = doc.data();
   if (!data) return null;
+
+  // Map old status values to new ones
+  let status = data.status;
+  if (status === 'scheduled') status = 'approved';
+  if (status === 'completed') status = data.examResult === 'passed' ? 'passed' : 'failed';
+  if (status === 'cancelled') status = 'rejected';
 
   return {
     id: doc.id,
     studentId: data.studentId,
     studentName: data.studentName,
     studentEmail: data.studentEmail,
+    groupId: data.groupId || '',
+    teacherId: data.teacherId || '',
+    teacherName: data.teacherName || '',
+    formId: data.formId || '',
     examType: data.examType,
-    status: data.status,
-    requestedDate: timestampToISO(data.requestedDate),
-    notes: data.notes || undefined,
+    status: status,
+    examDate: timestampToISO(data.scheduledDate) || timestampToISO(data.requestedDate) || '',
+    examTime: data.examTime || '09:00',
+    studentNotes: data.notes || undefined,
     reviewedBy: data.reviewedBy || undefined,
     reviewedByName: data.reviewedByName || undefined,
     reviewedAt: timestampToISO(data.reviewedAt),
     adminNotes: data.adminNotes || undefined,
-    scheduledDate: timestampToISO(data.scheduledDate),
     rejectionReason: data.rejectionReason || undefined,
-    completedAt: timestampToISO(data.completedAt),
-    examResult: data.examResult || undefined,
-    createdAt: timestampToISO(data.createdAt) || new Date().toISOString(),
-    updatedAt: timestampToISO(data.updatedAt) || new Date().toISOString(),
+    result: data.examResult || undefined,
+    resultNotes: data.resultNotes || undefined,
+    resultSetBy: data.resultSetBy || undefined,
+    resultSetAt: timestampToISO(data.resultSetAt),
+    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
+    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toMillis() : Date.now(),
   };
 }
 

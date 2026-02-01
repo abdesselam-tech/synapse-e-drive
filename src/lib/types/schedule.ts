@@ -30,6 +30,11 @@ export interface Schedule {
   notes?: string;
   createdAt: TimestampLike;
   updatedAt: TimestampLike;
+  
+  // Group-scoped availability
+  groupId?: string;           // If set, only students in this group can book
+  visibility?: 'public' | 'group'; // 'public' = all can see, 'group' = only group members
+  requiredRank?: number;      // Minimum rank required to book this slot
 }
 
 /**
@@ -44,4 +49,9 @@ export interface ScheduleFormData {
   maxStudents: number;
   location?: string;
   notes?: string;
+  
+  // Group-scoped availability
+  groupId?: string;
+  visibility?: 'public' | 'group';
+  requiredRank?: number;
 }

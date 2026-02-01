@@ -1,12 +1,14 @@
 /**
  * Student Bookings Page
  * Displays search, available schedules, student's bookings, and driving progress
+ * Now includes rank-based filtering and group-scoped availability
  */
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { getStudentBookings, getAvailableSchedules, getStudentProgressSummary } from '@/lib/server/actions/bookings';
+import { getStudentRankInfo } from '@/lib/server/actions/ranking';
 import { COLLECTIONS } from '@/lib/utils/constants/collections';
 import StudentBookingsClient from './client';
 
@@ -28,10 +30,11 @@ export default async function StudentBookingsPage() {
       redirect('/auth/login');
     }
 
-    const [bookings, availableSchedules, progress] = await Promise.all([
+    const [bookings, availableSchedules, progress, rankInfo] = await Promise.all([
       getStudentBookings(studentId),
       getAvailableSchedules(),
       getStudentProgressSummary(studentId),
+      getStudentRankInfo(studentId),
     ]);
 
     // Calculate upcoming count
@@ -52,6 +55,7 @@ export default async function StudentBookingsPage() {
         upcomingCount={upcomingCount}
         initialProgress={progress}
         studentId={studentId}
+        rankInfo={rankInfo}
       />
     );
   } catch (error) {

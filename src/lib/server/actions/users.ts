@@ -593,3 +593,50 @@ export async function deleteUser(input: unknown): Promise<{
     };
   }
 }
+
+// ============================================================================
+// LANGUAGE PREFERENCE
+// ============================================================================
+
+const updateLanguageSchema = z.object({
+  userId: z.string().min(1),
+  language: z.enum(['fr', 'ar', 'en']),
+});
+
+/**
+ * Update user's language preference
+ * Can be called by the user themselves or by admin
+ */
+export async function updateUserLanguage(
+  userId: string,
+  language: 'fr' | 'ar' | 'en'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    
+    // User can update their own language, or admin can update anyone's
+    const userDoc = await adminDb.collection(COLLECTIONS.USERS).doc(user.uid).get();
+    const isAdmin = userDoc.data()?.role === 'admin';
+    
+    if (user.uid !== userId && !isAdmin) {
+      return { success: false, error: 'Permission denied' };
+    }
+
+    // Validate input
+    const validated = updateLanguageSchema.parse({ userId, language });
+
+    // Update user document
+    await adminDb.collection(COLLECTIONS.USERS).doc(validated.userId).update({
+      language: validated.language,
+      updatedAt: Timestamp.now(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating user language:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update language',
+    };
+  }
+}

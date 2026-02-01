@@ -41,8 +41,8 @@ export default function AdminExamRequestsPage() {
   const stats = {
     total: requests.length,
     pending: requests.filter(r => r.status === 'pending').length,
-    scheduled: requests.filter(r => r.status === 'scheduled').length,
-    completed: requests.filter(r => r.status === 'completed').length,
+    approved: requests.filter(r => r.status === 'approved').length,
+    passed: requests.filter(r => r.status === 'passed').length,
   };
 
   return (
@@ -68,14 +68,14 @@ export default function AdminExamRequestsPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{stats.scheduled}</div>
-            <div className="text-sm text-gray-600">Scheduled</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.approved}</div>
+            <div className="text-sm text-gray-600">Approved</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-gray-600">{stats.completed}</div>
-            <div className="text-sm text-gray-600">Completed</div>
+            <div className="text-2xl font-bold text-green-600">{stats.passed}</div>
+            <div className="text-sm text-gray-600">Passed</div>
           </CardContent>
         </Card>
       </div>
@@ -95,9 +95,8 @@ export default function AdminExamRequestsPage() {
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
               </Select>
             </div>
 

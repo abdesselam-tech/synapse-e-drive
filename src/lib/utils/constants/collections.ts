@@ -19,4 +19,7 @@ export const COLLECTIONS = {
   QUIZ_RESULTS: 'quizResults',
   NOTIFICATIONS: 'notifications',
   EXAM_REQUESTS: 'examRequests',
+  EXAM_FORMS: 'examForms',       // Sub-collection under groups/{groupId}/examForms
+  ACTIVITY_FEED: 'activityFeed', // Group activity feed
+  LOGS: 'logs',                  // Admin audit logs
 } as const;

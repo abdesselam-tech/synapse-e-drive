@@ -1,7 +1,7 @@
 /**
  * Student Dashboard Page
  * Shows overview of upcoming lessons, quiz stats, and quick actions
- * Handles both full timestamps and time-only strings
+ * Includes rank badge, progress section, and group activity
  */
 
 import { cookies } from 'next/headers';
@@ -10,6 +10,8 @@ import { redirect } from 'next/navigation';
 import { Timestamp } from 'firebase-admin/firestore';
 import { COLLECTIONS } from '@/lib/utils/constants/collections';
 import { Card, CardContent } from '@/components/ui/card';
+import { RankBadge, RankProgressBar } from '@/components/ui/RankBadge';
+import { getStudentRankInfo } from '@/lib/server/actions/ranking';
 import Link from 'next/link';
 
 type UpcomingBooking = {
@@ -241,15 +243,61 @@ export default async function StudentDashboard() {
   const userDoc = await adminDb.collection(COLLECTIONS.USERS).doc(decodedToken.uid).get();
   const userData = userDoc.data();
 
-  const stats = await getStudentStats(decodedToken.uid);
+  const [stats, rankInfo] = await Promise.all([
+    getStudentStats(decodedToken.uid),
+    getStudentRankInfo(decodedToken.uid),
+  ]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {userData?.displayName || 'Student'}!
-        </h1>
-        <p className="text-gray-600 mt-2">Here&apos;s your learning overview</p>
+      {/* Header with Rank Badge */}
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Bienvenue, {userData?.displayName || 'Étudiant'}!
+          </h1>
+          {rankInfo && rankInfo.groupId && (
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <RankBadge 
+                rank={rankInfo.currentRank} 
+                label={rankInfo.currentRankLabel}
+                size="md"
+              />
+              <span className="text-gray-500">•</span>
+              <span className="text-gray-600">{rankInfo.groupName}</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Progress Card */}
+        {rankInfo && rankInfo.groupId && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 min-w-[280px]">
+            <CardContent className="p-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Ma Progression</h3>
+              <RankProgressBar
+                currentRank={rankInfo.currentRank}
+                maxRank={rankInfo.maxRank}
+                progressPercent={rankInfo.progressToNextRank || 0}
+                nextRankLabel={rankInfo.nextRankLabel}
+              />
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Not enrolled message */}
+        {(!rankInfo || !rankInfo.groupId) && (
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="p-4">
+              <p className="text-sm text-amber-800">
+                <strong>Non inscrit à un groupe</strong>
+                <br />
+                <Link href="/student/groups" className="text-amber-900 underline">
+                  Rejoignez un groupe
+                </Link> pour commencer votre formation.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -335,29 +383,52 @@ export default async function StudentDashboard() {
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link
-          href="/student/bookings"
-          className="bg-blue-600 text-white rounded-lg p-6 hover:bg-blue-700 transition block"
-        >
-          <div className="text-xl font-semibold mb-2">📅 Book a Lesson</div>
-          <div className="text-sm opacity-90">Schedule your next driving session</div>
-        </Link>
-        <Link
-          href="/student/quizzes"
-          className="bg-purple-600 text-white rounded-lg p-6 hover:bg-purple-700 transition block"
-        >
-          <div className="text-xl font-semibold mb-2">📝 Take a Quiz</div>
-          <div className="text-sm opacity-90">Test your driving knowledge</div>
-        </Link>
-        <Link
-          href="/student/library"
-          className="bg-green-600 text-white rounded-lg p-6 hover:bg-green-700 transition block"
-        >
-          <div className="text-xl font-semibold mb-2">📚 Study Materials</div>
-          <div className="text-sm opacity-90">Access learning resources</div>
-        </Link>
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Actions Rapides</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link
+              href="/student/quizzes"
+              className="bg-purple-600 text-white rounded-lg p-4 hover:bg-purple-700 transition block"
+            >
+              <div className="text-lg font-semibold mb-1">📝 Passer un Quiz</div>
+              <div className="text-sm opacity-90">Testez vos connaissances</div>
+            </Link>
+            <Link
+              href="/student/library"
+              className="bg-green-600 text-white rounded-lg p-4 hover:bg-green-700 transition block"
+            >
+              <div className="text-lg font-semibold mb-1">📚 Ressources</div>
+              <div className="text-sm opacity-90">Matériel d'apprentissage</div>
+            </Link>
+            {rankInfo?.groupId && (
+              <Link
+                href={`/student/groups/${rankInfo.groupId}`}
+                className="bg-indigo-600 text-white rounded-lg p-4 hover:bg-indigo-700 transition block"
+              >
+                <div className="text-lg font-semibold mb-1">📄 Mon Groupe</div>
+                <div className="text-sm opacity-90">Activité de la classe</div>
+              </Link>
+            )}
+            {!rankInfo?.groupId && (
+              <Link
+                href="/student/groups"
+                className="bg-amber-600 text-white rounded-lg p-4 hover:bg-amber-700 transition block"
+              >
+                <div className="text-lg font-semibold mb-1">🎯 Choisir un Groupe</div>
+                <div className="text-sm opacity-90">Rejoignez une formation</div>
+              </Link>
+            )}
+            <Link
+              href="/student/bookings"
+              className="bg-blue-600 text-white rounded-lg p-4 hover:bg-blue-700 transition block"
+            >
+              <div className="text-lg font-semibold mb-1">📅 Réserver</div>
+              <div className="text-sm opacity-90">Planifiez vos leçons</div>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

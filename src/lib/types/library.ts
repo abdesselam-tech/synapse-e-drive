@@ -30,6 +30,9 @@ export interface LibraryFile {
   downloads: number;
   tags?: string[];
   isPublic: boolean; // true = all students can see, false = restricted
+  
+  // Group pinning - resources can be pinned to specific groups
+  groupIds?: string[];         // Groups this resource is pinned to (set by teacher)
 }
 
 export type UploadLibraryFileInput = {

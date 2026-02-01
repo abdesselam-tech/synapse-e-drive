@@ -1,0 +1,134 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "success": "نجاح",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "search": "بحث",
+    "filter": "تصفية",
+    "all": "الكل",
+    "none": "لا شيء",
+    "yes": "نعم",
+    "no": "لا",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "close": "إغلاق"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "signup": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "rememberMe": "تذكرني"
+  },
+  "dashboard": {
+    "welcome": "مرحباً، {name}!",
+    "progress": "تقدمي",
+    "upcomingLessons": "الدروس القادمة",
+    "noUpcomingLessons": "لا توجد دروس مجدولة",
+    "completedLessons": "الدروس المكتملة",
+    "quizAttempts": "محاولات الاختبار",
+    "quizzesPassed": "الاختبارات الناجحة"
+  },
+  "actions": {
+    "takeQuiz": "إجراء اختبار",
+    "studyMaterials": "مواد الدراسة",
+    "viewClassActivity": "عرض نشاط الفصل",
+    "chooseGroup": "اختيار مجموعة",
+    "bookLesson": "حجز درس",
+    "manageSchedules": "إدارة الجداول",
+    "createQuiz": "إنشاء اختبار",
+    "addExamForm": "إضافة نموذج امتحان",
+    "pinResource": "تثبيت مورد",
+    "viewStudents": "عرض الطلاب"
+  },
+  "groups": {
+    "title": "المجموعات",
+    "myGroup": "مجموعتي",
+    "joinGroup": "الانضمام لمجموعة",
+    "leaveGroup": "مغادرة المجموعة",
+    "members": "الأعضاء",
+    "teacher": "المعلم",
+    "activity": "النشاط",
+    "resources": "الموارد"
+  },
+  "ranking": {
+    "rank": "الرتبة",
+    "currentRank": "الرتبة الحالية",
+    "nextRank": "الرتبة التالية",
+    "maxRankReached": "تم الوصول للرتبة القصوى!",
+    "progressToNext": "التقدم نحو الرتبة التالية",
+    "notEnrolled": "غير مسجل في مجموعة"
+  },
+  "bookings": {
+    "title": "الحجوزات",
+    "myBookings": "حجوزاتي",
+    "available": "متاح",
+    "upcoming": "قادم",
+    "past": "سابق",
+    "book": "حجز",
+    "cancel": "إلغاء",
+    "confirmed": "مؤكد",
+    "cancelled": "ملغي",
+    "completed": "مكتمل"
+  },
+  "exams": {
+    "title": "الامتحانات",
+    "requestExam": "طلب امتحان",
+    "examForm": "نموذج الامتحان",
+    "pending": "قيد الانتظار",
+    "approved": "موافق عليه",
+    "rejected": "مرفوض",
+    "passed": "ناجح",
+    "failed": "راسب",
+    "examDate": "تاريخ الامتحان",
+    "examTime": "وقت الامتحان"
+  },
+  "library": {
+    "title": "المكتبة",
+    "pinnedResources": "الموارد المثبتة",
+    "allResources": "جميع الموارد",
+    "download": "تحميل",
+    "upload": "رفع"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAsRead": "تحديد كمقروء",
+    "markAllAsRead": "تحديد الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات"
+  },
+  "admin": {
+    "dashboard": "لوحة تحكم المدير",
+    "users": "المستخدمون",
+    "schedules": "الجداول",
+    "evaluations": "التقييمات",
+    "logs": "السجلات",
+    "platformOverview": "نظرة عامة",
+    "pendingExamRequests": "طلبات الامتحان المعلقة"
+  },
+  "teacher": {
+    "dashboard": "لوحة تحكم المعلم",
+    "myGroups": "مجموعاتي",
+    "todaySchedule": "جدول اليوم",
+    "recentActivity": "النشاط الأخير"
+  },
+  "activity": {
+    "title": "النشاط",
+    "recentActivity": "النشاط الأخير",
+    "noActivity": "لا يوجد نشاط حديث",
+    "booking": "حجز",
+    "rankUp": "ترقية الرتبة",
+    "quizCompleted": "اكتمل الاختبار",
+    "resourceAdded": "تمت إضافة مورد",
+    "examFormCreated": "تم إنشاء نموذج امتحان",
+    "examRequested": "تم طلب امتحان"
+  }
+}
