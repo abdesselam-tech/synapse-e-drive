@@ -447,6 +447,12 @@ export async function joinGroup(input: unknown): Promise<{
       studentEmail: userData.email,
       joinedAt: Timestamp.now(),
       status: 'active',
+      // Phase tracking fields
+      phase: 'code',
+      phaseUpdatedAt: Timestamp.now(),
+      phaseUpdatedBy: null,
+      phaseNotes: null,
+      consecutiveAbsences: 0,
     };
 
     await adminDb.collection(COLLECTIONS.GROUP_MEMBERS).add(membershipData);
@@ -625,6 +631,12 @@ export async function changeGroup(
       changedFromGroupId: currentGroupId,
       changedFromGroupName: currentMembershipData.groupName,
       changeReason: reason.trim(),
+      // Phase tracking fields - reset to code on group change
+      phase: 'code',
+      phaseUpdatedAt: Timestamp.now(),
+      phaseUpdatedBy: null,
+      phaseNotes: null,
+      consecutiveAbsences: 0,
     });
 
     // 4. Increment new group count
@@ -1210,6 +1222,370 @@ export async function deleteGroupResource(resourceId: string): Promise<{
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete resource',
+    };
+  }
+}
+
+// ============================================================================
+// ADMIN: ADD/REMOVE STUDENTS FROM GROUPS
+// ============================================================================
+
+import { z } from 'zod';
+import { createNotification } from './notifications';
+
+const adminAddStudentSchema = z.object({
+  groupId: z.string().min(1),
+  studentId: z.string().min(1),
+});
+
+const adminRemoveStudentSchema = z.object({
+  groupId: z.string().min(1),
+  studentId: z.string().min(1),
+  reason: z.string().min(10, 'Reason must be at least 10 characters'),
+});
+
+/**
+ * Admin: Add a student to a group
+ */
+export async function adminAddStudentToGroup(input: unknown): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const validated = adminAddStudentSchema.parse(input);
+    const user = await getCurrentUser();
+
+    // Admin only
+    if (!await isAdmin(user.uid)) {
+      throw new Error('Only admins can add students to groups');
+    }
+
+    // 1. Verify group exists
+    const groupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(validated.groupId).get();
+    if (!groupDoc.exists) {
+      return { success: false, error: 'Group not found' };
+    }
+    const groupData = groupDoc.data()!;
+
+    // 2. Verify student exists and has role "student"
+    const studentDoc = await adminDb.collection(COLLECTIONS.USERS).doc(validated.studentId).get();
+    if (!studentDoc.exists || studentDoc.data()?.role !== 'student') {
+      return { success: false, error: 'Student not found' };
+    }
+    const studentData = studentDoc.data()!;
+
+    // 3. One-group limit check
+    const existingMembership = await adminDb
+      .collection(COLLECTIONS.GROUP_MEMBERS)
+      .where('studentId', '==', validated.studentId)
+      .where('status', '==', 'active')
+      .get();
+
+    if (!existingMembership.empty) {
+      const currentMembership = existingMembership.docs[0].data();
+      // Get the group name
+      const currentGroupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(currentMembership.groupId).get();
+      const currentGroupName = currentGroupDoc.exists ? currentGroupDoc.data()?.name : 'another group';
+      return { 
+        success: false, 
+        error: `Student is already in "${currentGroupName}". Remove them first.` 
+      };
+    }
+
+    // 4. Capacity check
+    if (groupData.currentStudents >= groupData.maxStudents) {
+      return { 
+        success: false, 
+        error: `Group is full (max ${groupData.maxStudents} students)` 
+      };
+    }
+
+    // 5. Create groupMembers document
+    const membershipData = {
+      groupId: validated.groupId,
+      groupName: groupData.name,
+      studentId: validated.studentId,
+      studentName: studentData.displayName || studentData.email,
+      studentEmail: studentData.email,
+      status: 'active',
+      joinedAt: Timestamp.now(),
+      phase: 'code',
+      phaseUpdatedAt: Timestamp.now(),
+      phaseUpdatedBy: null,
+      phaseNotes: null,
+      consecutiveAbsences: 0,
+    };
+
+    await adminDb.collection(COLLECTIONS.GROUP_MEMBERS).add(membershipData);
+
+    // 6. Update group document — increment currentStudents
+    await adminDb.collection(COLLECTIONS.GROUPS).doc(validated.groupId).update({
+      currentStudents: FieldValue.increment(1),
+      updatedAt: Timestamp.now(),
+    });
+
+    // 7. Notify student
+    try {
+      await createNotification({
+        userId: validated.studentId,
+        type: 'group_joined',
+        priority: 'normal',
+        title: '👥 Added to Group',
+        message: `You have been added to ${groupData.name} by an administrator.`,
+        actionUrl: `/student/groups/${validated.groupId}`,
+        actionLabel: 'View Group',
+        metadata: { groupId: validated.groupId },
+      });
+    } catch (notifError) {
+      console.error('Error sending student notification:', notifError);
+    }
+
+    // 8. Notify group teacher
+    try {
+      await createNotification({
+        userId: groupData.teacherId,
+        type: 'group_student_joined',
+        priority: 'normal',
+        title: '👥 Student Added',
+        message: `${studentData.displayName || studentData.email} has been added to your group ${groupData.name} by an administrator.`,
+        actionUrl: `/teacher/groups/${validated.groupId}`,
+        actionLabel: 'View Group',
+        metadata: { groupId: validated.groupId, studentId: validated.studentId },
+      });
+    } catch (notifError) {
+      console.error('Error sending teacher notification:', notifError);
+    }
+
+    return {
+      success: true,
+      message: `${studentData.displayName || studentData.email} added to ${groupData.name}`,
+    };
+  } catch (error: unknown) {
+    console.error('Error adding student to group:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to add student to group',
+    };
+  }
+}
+
+/**
+ * Admin: Remove a student from a group
+ */
+export async function adminRemoveStudentFromGroup(input: unknown): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const validated = adminRemoveStudentSchema.parse(input);
+    const user = await getCurrentUser();
+
+    // Admin only
+    if (!await isAdmin(user.uid)) {
+      throw new Error('Only admins can remove students from groups');
+    }
+
+    // 1. Find the groupMembers document
+    const membershipSnapshot = await adminDb
+      .collection(COLLECTIONS.GROUP_MEMBERS)
+      .where('groupId', '==', validated.groupId)
+      .where('studentId', '==', validated.studentId)
+      .where('status', '==', 'active')
+      .get();
+
+    if (membershipSnapshot.empty) {
+      return { success: false, error: 'Student is not currently in this group' };
+    }
+
+    const membershipDoc = membershipSnapshot.docs[0];
+
+    // 2. Read the group to get groupName and teacherId
+    const groupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(validated.groupId).get();
+    if (!groupDoc.exists) {
+      return { success: false, error: 'Group not found' };
+    }
+    const groupData = groupDoc.data()!;
+
+    // 3. Read the user to get studentName
+    const studentDoc = await adminDb.collection(COLLECTIONS.USERS).doc(validated.studentId).get();
+    const studentName = studentDoc.exists 
+      ? (studentDoc.data()?.displayName || studentDoc.data()?.email || 'Student')
+      : 'Student';
+
+    // 4. Update groupMembers document
+    await membershipDoc.ref.update({
+      status: 'removed',
+      leftAt: Timestamp.now(),
+      removalReason: validated.reason,
+    });
+
+    // 5. Update group document — decrement currentStudents
+    await adminDb.collection(COLLECTIONS.GROUPS).doc(validated.groupId).update({
+      currentStudents: FieldValue.increment(-1),
+      updatedAt: Timestamp.now(),
+    });
+
+    // 6. Notify student
+    try {
+      await createNotification({
+        userId: validated.studentId,
+        type: 'group_removed',
+        priority: 'high',
+        title: '🚪 Removed from Group',
+        message: `You have been removed from ${groupData.name}. Reason: ${validated.reason}`,
+        actionUrl: '/student/groups',
+        actionLabel: 'View Groups',
+        metadata: { groupId: validated.groupId, reason: validated.reason },
+      });
+    } catch (notifError) {
+      console.error('Error sending student notification:', notifError);
+    }
+
+    // 7. Notify group teacher
+    try {
+      await createNotification({
+        userId: groupData.teacherId,
+        type: 'group_student_left',
+        priority: 'normal',
+        title: '🚪 Student Removed',
+        message: `${studentName} has been removed from your group ${groupData.name}. Reason: ${validated.reason}`,
+        actionUrl: `/teacher/groups/${validated.groupId}`,
+        actionLabel: 'View Group',
+        metadata: { groupId: validated.groupId, studentId: validated.studentId, reason: validated.reason },
+      });
+    } catch (notifError) {
+      console.error('Error sending teacher notification:', notifError);
+    }
+
+    return {
+      success: true,
+      message: `${studentName} removed from ${groupData.name}`,
+    };
+  } catch (error: unknown) {
+    console.error('Error removing student from group:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to remove student from group',
+    };
+  }
+}
+
+// ============================================================================
+// LEARNING PHASE SYSTEM
+// ============================================================================
+
+const updatePhaseSchema = z.object({
+  groupId: z.string().min(1),
+  studentId: z.string().min(1),
+  newPhase: z.enum(['creneau', 'conduite', 'exam-preparation']),
+  notes: z.string().min(5, 'Notes must be at least 5 characters'),
+});
+
+import { PHASE_LABELS, ALLOWED_TRANSITIONS } from '@/lib/utils/constants/phases';
+
+/**
+ * Update a student's learning phase
+ * Admin or group teacher only
+ */
+export async function updateStudentPhase(input: unknown): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const validated = updatePhaseSchema.parse(input);
+    const user = await getCurrentUser();
+
+    // Get the group to check teacher ownership
+    const groupDoc = await adminDb.collection(COLLECTIONS.GROUPS).doc(validated.groupId).get();
+    if (!groupDoc.exists) {
+      return { success: false, error: 'Group not found' };
+    }
+    const groupData = groupDoc.data()!;
+
+    // Permission check: admin OR group's teacher
+    const userRole = await getUserRole(user.uid);
+    const isGroupTeacher = groupData.teacherId === user.uid;
+    
+    if (userRole !== 'admin' && !isGroupTeacher) {
+      return { success: false, error: 'Permission denied. Only admins or the group teacher can update phases.' };
+    }
+
+    // 1. Find groupMembers document
+    const membershipSnapshot = await adminDb
+      .collection(COLLECTIONS.GROUP_MEMBERS)
+      .where('groupId', '==', validated.groupId)
+      .where('studentId', '==', validated.studentId)
+      .where('status', '==', 'active')
+      .get();
+
+    if (membershipSnapshot.empty) {
+      return { success: false, error: 'Student is not in this group' };
+    }
+
+    const membershipDoc = membershipSnapshot.docs[0];
+    const membershipData = membershipDoc.data();
+    const currentPhase = membershipData.phase || 'code';
+
+    // 2. Validate the transition
+    const allowedNextPhase = ALLOWED_TRANSITIONS[currentPhase];
+    
+    if (allowedNextPhase !== validated.newPhase) {
+      const currentLabel = PHASE_LABELS[currentPhase] || currentPhase;
+      const nextLabel = allowedNextPhase ? PHASE_LABELS[allowedNextPhase] : 'none';
+      return { 
+        success: false, 
+        error: `Invalid transition. Current phase is "${currentLabel}". Next allowed phase is "${nextLabel}".` 
+      };
+    }
+
+    // 3. Get student name for response
+    const studentDoc = await adminDb.collection(COLLECTIONS.USERS).doc(validated.studentId).get();
+    const studentName = studentDoc.exists 
+      ? (studentDoc.data()?.displayName || studentDoc.data()?.email || 'Student')
+      : 'Student';
+
+    // 4. Update groupMembers document
+    await membershipDoc.ref.update({
+      phase: validated.newPhase,
+      phaseUpdatedAt: Timestamp.now(),
+      phaseUpdatedBy: user.uid,
+      phaseNotes: validated.notes,
+    });
+
+    // 5. Notify student
+    try {
+      const newPhaseLabel = PHASE_LABELS[validated.newPhase] || validated.newPhase;
+      await createNotification({
+        userId: validated.studentId,
+        type: 'group_joined', // Using existing type
+        priority: 'normal',
+        title: '📈 Phase Updated',
+        message: `Your phase has been updated to "${newPhaseLabel}". Teacher note: ${validated.notes}`,
+        actionUrl: `/student/groups/${validated.groupId}`,
+        actionLabel: 'View Group',
+        metadata: { 
+          groupId: validated.groupId, 
+          newPhase: validated.newPhase,
+          previousPhase: currentPhase,
+        },
+      });
+    } catch (notifError) {
+      console.error('Error sending phase update notification:', notifError);
+    }
+
+    const newPhaseLabel = PHASE_LABELS[validated.newPhase] || validated.newPhase;
+    return {
+      success: true,
+      message: `Phase updated to "${newPhaseLabel}" for ${studentName}`,
+    };
+  } catch (error: unknown) {
+    console.error('Error updating student phase:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update phase',
     };
   }
 }

@@ -11,6 +11,7 @@ export const COLLECTIONS = {
   GROUP_MEMBERS: 'groupMembers',
   GROUP_SCHEDULES: 'groupSchedules',
   GROUP_RESOURCES: 'groupResources',
+  ATTENDANCE: 'attendance',
   LIBRARY: 'library',
   QUIZZES: 'quizzes',
   QUESTIONS: 'questions',

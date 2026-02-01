@@ -9,6 +9,7 @@ import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { redirect } from 'next/navigation';
 import { Timestamp } from 'firebase-admin/firestore';
 import { COLLECTIONS } from '@/lib/utils/constants/collections';
+import { getStudentsNeedingContact, type StudentNeedingContact } from '@/lib/server/actions/attendance';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 
@@ -225,6 +226,7 @@ export default async function AdminDashboard() {
   const userData = userDoc.data();
 
   const stats = await getAdminStats();
+  const studentsNeedingContact = await getStudentsNeedingContact();
 
   return (
     <div className="space-y-6">
@@ -235,10 +237,59 @@ export default async function AdminDashboard() {
         <p className="text-gray-600 mt-2">Platform overview and management</p>
       </div>
 
+      {/* Students Needing Contact Warning */}
+      {studentsNeedingContact.length > 0 && (
+        <Card className="border-l-4 border-l-red-500 bg-red-50">
+          <CardContent className="p-0">
+            <div className="bg-red-600 text-white px-6 py-3 rounded-t-lg">
+              <h2 className="text-lg font-semibold">⚠️ Students Needing Contact</h2>
+              <p className="text-sm opacity-90">{studentsNeedingContact.length} student(s) with 3+ consecutive absences</p>
+            </div>
+            <div className="p-4">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px] text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2 font-medium text-gray-600">Student</th>
+                      <th className="text-left py-2 px-2 font-medium text-gray-600">Email</th>
+                      <th className="text-left py-2 px-2 font-medium text-gray-600">Group</th>
+                      <th className="text-left py-2 px-2 font-medium text-gray-600">Teacher</th>
+                      <th className="text-center py-2 px-2 font-medium text-gray-600">Absences</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentsNeedingContact.map((student) => (
+                      <tr key={`${student.studentId}-${student.groupId}`} className="border-b last:border-0 hover:bg-red-100/50">
+                        <td className="py-2 px-2 font-medium text-gray-900">{student.studentName}</td>
+                        <td className="py-2 px-2 text-gray-600">{student.studentEmail}</td>
+                        <td className="py-2 px-2">
+                          <Link 
+                            href={`/admin/groups/${student.groupId}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {student.groupName}
+                          </Link>
+                        </td>
+                        <td className="py-2 px-2 text-gray-600">{student.teacherName}</td>
+                        <td className="py-2 px-2 text-center">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            {student.consecutiveAbsences} absences
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* User Stats */}
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-700">👥 Users</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Card className="border-l-4 border-l-blue-500">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-blue-600">{stats.totalUsers}</div>
@@ -263,7 +314,7 @@ export default async function AdminDashboard() {
       {/* Schedules & Lessons Stats */}
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-700">📅 Schedules & Lessons</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Card className="border-l-4 border-l-blue-500">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-blue-600">{stats.totalSchedules}</div>
@@ -288,7 +339,7 @@ export default async function AdminDashboard() {
       {/* Quiz & Exam Stats */}
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-700">📝 Quizzes & Exams</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Card className="border-l-4 border-l-purple-500">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-purple-600">{stats.totalQuizzes}</div>
@@ -319,7 +370,7 @@ export default async function AdminDashboard() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-700">⚡ Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link
             href="/admin/users"
             className="bg-blue-600 text-white rounded-lg p-6 hover:bg-blue-700 transition shadow-lg hover:shadow-xl block"

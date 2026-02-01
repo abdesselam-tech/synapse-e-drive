@@ -23,6 +23,8 @@ export interface Group {
   updatedAt: string;
 }
 
+export type LearningPhase = 'code' | 'creneau' | 'conduite' | 'exam-preparation' | 'passed';
+
 export interface GroupMember {
   id: string;
   groupId: string;
@@ -31,10 +33,16 @@ export interface GroupMember {
   studentName: string;
   studentEmail: string;
   joinedAt: string;
-  status: 'active' | 'removed';
+  status: 'active' | 'removed' | 'changed';
   leftAt?: string;
   removedAt?: string;
   removedBy?: string;
+  // Phase tracking fields
+  phase?: LearningPhase;
+  phaseUpdatedAt?: string;
+  phaseUpdatedBy?: string | null;
+  phaseNotes?: string | null;
+  consecutiveAbsences?: number;
 }
 
 export interface GroupSchedule {

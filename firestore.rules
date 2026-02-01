@@ -195,6 +195,19 @@ service cloud.firestore {
     }
     
     // ============================================================================
+    // ATTENDANCE COLLECTION
+    // ============================================================================
+    
+    match /attendance/{docId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        isTeacher() ||
+        (isStudent() && resource.data.studentId == request.auth.uid)
+      );
+      allow write: if isSignedIn() && isTeacherOrAdmin();
+    }
+    
+    // ============================================================================
     // DEFAULT DENY RULE
     // ============================================================================
     

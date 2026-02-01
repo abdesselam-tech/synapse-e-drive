@@ -9,7 +9,6 @@ import { registerUser, createSession } from '@/lib/server/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 
@@ -19,13 +18,19 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState<'student' | 'teacher'>('student');
+  const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
+    // Validate passcode
+    if (!passcode.trim()) {
+      setError('Please enter your passcode.');
+      return;
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -39,32 +44,29 @@ export default function SignupPage() {
       return;
     }
 
-    if (!role) {
-      setError('Please select your role.');
-      return;
-    }
-
     setLoading(true);
 
     try {
       const trimmedDisplayName = displayName.trim();
 
-      await registerUser({
+      // Register user with passcode - role is determined by the passcode
+      const result = await registerUser({
         email,
         password,
         displayName: trimmedDisplayName || undefined,
-        role,
+        passcode: passcode.trim().toUpperCase(),
       });
 
       const credentials = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await credentials.user.getIdToken();
       await createSession(idToken);
 
-      router.push(`/${role}/dashboard`);
+      // Redirect based on the role returned from registration
+      router.push(`/${result.role}/dashboard`);
     } catch (err: unknown) {
       console.error('Signup error:', err);
       
-      // Handle specific Firebase auth errors
+      // Handle specific errors
       let errorMessage = 'Failed to create account. Please try again.';
 
       const errorCode =
@@ -73,24 +75,29 @@ export default function SignupPage() {
           : undefined;
       const errorText = err instanceof Error ? err.message : undefined;
 
-      switch (errorCode) {
-        case 'auth/email-already-in-use':
-          errorMessage = 'An account with this email already exists.';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Invalid email address.';
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = 'Email/password accounts are not enabled.';
-          break;
-        case 'auth/weak-password':
-          errorMessage = 'Password is too weak. Please choose a stronger password.';
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = 'Network error. Please check your connection.';
-          break;
-        default:
-          errorMessage = errorText || errorMessage;
+      // Check for passcode-related errors
+      if (errorText?.includes('passcode') || errorText?.includes('Passcode')) {
+        errorMessage = errorText;
+      } else {
+        switch (errorCode) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'An account with this email already exists.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak. Please choose a stronger password.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          default:
+            errorMessage = errorText || errorMessage;
+        }
       }
 
       setError(errorMessage);
@@ -117,6 +124,25 @@ export default function SignupPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="passcode">Passcode *</Label>
+            <Input
+              id="passcode"
+              type="text"
+              placeholder="Enter your passcode (e.g., ABC12345)"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value.toUpperCase())}
+              required
+              disabled={loading}
+              autoComplete="off"
+              className="uppercase tracking-wider font-mono"
+              maxLength={20}
+            />
+            <p className="text-xs text-muted-foreground">
+              Your passcode determines your role (Student or Teacher). Contact an administrator if you don&apos;t have one.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="displayName">Full Name (Optional)</Label>
             <Input
               id="displayName"
@@ -130,7 +156,7 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               type="email"
@@ -144,21 +170,7 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
-              disabled={loading}
-              required
-            >
-              <option value="student">Student</option>
-              <option value="teacher">Teacher</option>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Password *</Label>
             <Input
               id="password"
               type="password"
@@ -173,7 +185,7 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword">Confirm Password *</Label>
             <Input
               id="confirmPassword"
               type="password"

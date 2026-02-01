@@ -4,19 +4,14 @@ import type { NextRequest } from 'next/server';
 /**
  * Middleware for role-based routing
  * Enforces access control based on user roles
+ * Handles first-admin setup flow for fresh deployments
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/80792507-1eff-4280-8fa6-0125782b29a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:10',message:'middleware entry',data:{pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
 
-  // Allow public routes
+  // Allow public routes (including first-admin page)
   const publicRoutes = ['/auth', '/api/auth'];
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/80792507-1eff-4280-8fa6-0125782b29a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:15',message:'public route allow',data:{pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     return NextResponse.next();
   }
 
@@ -25,7 +20,29 @@ export async function middleware(request: NextRequest) {
     request.cookies.get('auth-token')?.value ||
     request.headers.get('authorization')?.replace('Bearer ', '');
 
+  // If no token, check if we need first-admin setup
   if (!token) {
+    try {
+      // Check if any admin exists
+      const checkAdminResponse = await fetch(new URL('/api/auth/check-admin', request.url), {
+        method: 'GET',
+        cache: 'no-store',
+      });
+
+      if (checkAdminResponse.ok) {
+        const { hasAdmin } = await checkAdminResponse.json() as { hasAdmin: boolean };
+        
+        if (!hasAdmin) {
+          // No admin exists - redirect to first-admin setup
+          return NextResponse.redirect(new URL('/auth/first-admin', request.url));
+        }
+      }
+    } catch (error) {
+      // If check fails, continue to normal login flow
+      console.error('Error checking admin status in middleware:', error);
+    }
+
+    // Admin exists or check failed - redirect to login
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 

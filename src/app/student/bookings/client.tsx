@@ -1,28 +1,46 @@
 /**
  * Student Bookings Client Component
- * Handles tabs and client-side interactions
+ * Handles tabs, client-side interactions, and driving progress display
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { PlainBooking, AvailableSchedule } from '@/lib/server/actions/bookings';
+import type { StudentProgress } from '@/lib/types/booking';
+import { getStudentProgressSummary } from '@/lib/server/actions/bookings';
 import MyBookings from '@/components/bookings/MyBookings';
 import AvailableSchedules from '@/components/bookings/AvailableSchedules';
 import StudentScheduleSearch from '@/components/schedules/StudentScheduleSearch';
+import DrivingProgressDashboard from '@/components/student/DrivingProgressDashboard';
 
 interface StudentBookingsClientProps {
   initialBookings: PlainBooking[];
   initialAvailableSchedules: AvailableSchedule[];
   upcomingCount: number;
+  initialProgress: StudentProgress;
+  studentId: string;
 }
 
 export default function StudentBookingsClient({
   initialBookings,
   initialAvailableSchedules,
   upcomingCount,
+  initialProgress,
+  studentId,
 }: StudentBookingsClientProps) {
   const [activeTab, setActiveTab] = useState<'my-bookings' | 'available' | 'search'>('my-bookings');
+  const [progress, setProgress] = useState<StudentProgress>(initialProgress);
+  const [showProgress, setShowProgress] = useState(true);
+
+  const refreshProgress = useCallback(async () => {
+    try {
+      const updatedProgress = await getStudentProgressSummary(studentId);
+      setProgress(updatedProgress);
+    } catch (error) {
+      console.error('Error refreshing progress:', error);
+    }
+  }, [studentId]);
 
   return (
     <div className="space-y-6">
@@ -33,6 +51,19 @@ export default function StudentBookingsClient({
             ? `You have ${upcomingCount} upcoming ${upcomingCount === 1 ? 'lesson' : 'lessons'}`
             : 'No upcoming lessons scheduled'}
         </p>
+      </div>
+
+      {/* Driving Progress Dashboard */}
+      <div>
+        <button
+          onClick={() => setShowProgress(!showProgress)}
+          className="text-sm text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
+        >
+          {showProgress ? '▼ Hide Progress' : '▶ Show Progress'}
+        </button>
+        {showProgress && (
+          <DrivingProgressDashboard progress={progress} />
+        )}
       </div>
 
       {/* Tabs */}

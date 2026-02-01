@@ -1,12 +1,12 @@
 /**
  * Student Bookings Page
- * Displays search, available schedules, and student's bookings
+ * Displays search, available schedules, student's bookings, and driving progress
  */
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import { getStudentBookings, getAvailableSchedules } from '@/lib/server/actions/bookings';
+import { getStudentBookings, getAvailableSchedules, getStudentProgressSummary } from '@/lib/server/actions/bookings';
 import { COLLECTIONS } from '@/lib/utils/constants/collections';
 import StudentBookingsClient from './client';
 
@@ -28,9 +28,10 @@ export default async function StudentBookingsPage() {
       redirect('/auth/login');
     }
 
-    const [bookings, availableSchedules] = await Promise.all([
+    const [bookings, availableSchedules, progress] = await Promise.all([
       getStudentBookings(studentId),
       getAvailableSchedules(),
+      getStudentProgressSummary(studentId),
     ]);
 
     // Calculate upcoming count
@@ -49,6 +50,8 @@ export default async function StudentBookingsPage() {
         initialBookings={bookings}
         initialAvailableSchedules={availableSchedules}
         upcomingCount={upcomingCount}
+        initialProgress={progress}
+        studentId={studentId}
       />
     );
   } catch (error) {

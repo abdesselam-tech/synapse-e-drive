@@ -278,6 +278,26 @@ export async function createBooking(input: { scheduleId: string; notes?: string 
 
     const studentData = studentDoc.data()!;
 
+    // PHASE GATE: Check if student is in "code" phase (blocked from individual bookings)
+    const membershipSnapshot = await adminDb
+      .collection(COLLECTIONS.GROUP_MEMBERS)
+      .where('studentId', '==', user.uid)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+
+    if (!membershipSnapshot.empty) {
+      const membershipData = membershipSnapshot.docs[0].data();
+      if (membershipData.phase === 'code') {
+        return {
+          success: false,
+          error: 'You need to complete the theory phase (Code) before booking individual lessons. Continue attending your group sessions to progress.',
+        };
+      }
+      // Students in creneau, conduite, exam-preparation, or passed can book normally
+    }
+    // Students not in any group can also book normally (backward compatibility)
+
     // Get schedule details
     const scheduleDoc = await adminDb.collection(COLLECTIONS.SCHEDULES).doc(validated.scheduleId).get();
     if (!scheduleDoc.exists) {
@@ -565,6 +585,11 @@ export interface TeacherBookingWithNotes {
   teacherNotes: string | null;
   teacherNotesUpdatedAt: string | null;
   status: string;
+  // Completion fields
+  completed?: boolean;
+  completedAt?: string;
+  hoursCompleted?: number;
+  performanceRating?: number;
 }
 
 /**
@@ -584,16 +609,26 @@ export async function getTeacherBookingsWithNotes(
       throw new Error('Unauthorized');
     }
 
-    // Get all confirmed bookings for this teacher
-    const bookingsSnapshot = await adminDb
-      .collection(COLLECTIONS.BOOKINGS)
-      .where('teacherId', '==', teacherId)
-      .where('status', '==', 'confirmed')
-      .get();
+    // Get all confirmed AND completed bookings for this teacher
+    // We need both so teachers can see completed lessons and mark pending ones
+    const [confirmedSnapshot, completedSnapshot] = await Promise.all([
+      adminDb
+        .collection(COLLECTIONS.BOOKINGS)
+        .where('teacherId', '==', teacherId)
+        .where('status', '==', 'confirmed')
+        .get(),
+      adminDb
+        .collection(COLLECTIONS.BOOKINGS)
+        .where('teacherId', '==', teacherId)
+        .where('status', '==', 'completed')
+        .get(),
+    ]);
+    
+    const allDocs = [...confirmedSnapshot.docs, ...completedSnapshot.docs];
 
     const bookings: TeacherBookingWithNotes[] = [];
 
-    for (const doc of bookingsSnapshot.docs) {
+    for (const doc of allDocs) {
       const data = doc.data();
       
       // Parse the date to get a proper date object for startTime
@@ -637,6 +672,11 @@ export async function getTeacherBookingsWithNotes(
           ? timestampToISO(data.teacherNotesUpdatedAt) 
           : null,
         status: data.status,
+        // Completion fields
+        completed: data.completed || false,
+        completedAt: data.completedAt ? timestampToISO(data.completedAt) : undefined,
+        hoursCompleted: data.hoursCompleted,
+        performanceRating: data.performanceRating,
       });
     }
 

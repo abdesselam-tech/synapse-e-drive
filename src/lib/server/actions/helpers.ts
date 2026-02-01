@@ -3,11 +3,20 @@
  * Utilities for server actions
  */
 
+import { cookies } from 'next/headers';
 import { adminDb } from '@/lib/firebase/admin';
 import { COLLECTIONS } from '@/lib/utils/constants/collections';
 import { AuthenticationError, NotFoundError } from '@/lib/utils/errors';
 import type { User, UserRole } from '@/lib/types';
 import { requireRole, requireAnyRole } from '@/lib/utils/roles';
+
+/**
+ * Get auth token from cookies
+ */
+export async function getAuthToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get('auth-token')?.value || null;
+}
 
 /**
  * Get current user from Firebase Admin Auth token
