@@ -1,9 +1,9 @@
+'use server';
+
 /**
  * Activity Feed Server Actions
  * Track and display group activity for cross-role presence
  */
-
-'use server';
 
 import { adminDb, adminAuth } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';

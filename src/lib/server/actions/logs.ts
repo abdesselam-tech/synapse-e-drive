@@ -1,9 +1,9 @@
+'use server';
+
 /**
  * Audit Logs Server Actions
  * Track all platform actions for admin oversight
  */
-
-'use server';
 
 import { adminDb, adminAuth } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';

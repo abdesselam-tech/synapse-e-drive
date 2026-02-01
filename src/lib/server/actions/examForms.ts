@@ -1,9 +1,9 @@
+'use server';
+
 /**
  * Exam Forms Server Actions
  * Teacher creates exam forms, students request, admin decides
  */
-
-'use server';
 
 import { z } from 'zod';
 import { adminDb, adminAuth } from '@/lib/firebase/admin';

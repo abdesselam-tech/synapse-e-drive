@@ -1,9 +1,9 @@
+'use server';
+
 /**
  * Ranking Server Actions
  * Manage student ranks within groups
  */
-
-'use server';
 
 import { z } from 'zod';
 import { adminDb, adminAuth } from '@/lib/firebase/admin';
